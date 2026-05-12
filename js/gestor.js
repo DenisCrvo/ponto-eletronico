@@ -17,6 +17,13 @@ const g = {
 let dadosAno = {}; // { 'YYYY-MM-DD': {entrada,..., lancamento} }
 let mesAtual = '';
 
+const ROTULOS = {
+  entrada: 'Entrada',
+  break_start: 'Início do Intervalo',
+  break_end: 'Fim do Intervalo',
+  saida: 'Saída'
+};
+
 // === Inicialização ===
 const hojeISO = isoHoje();
 g.filtro.value = hojeISO.slice(0, 7);
@@ -33,17 +40,43 @@ g.formLanc.addEventListener('submit', async (e) => {
   await carregar();
 });
 
+// === Submissão da edição com salvaguarda contra apagamento acidental ===
 g.formEdit.addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = document.getElementById('edit-data').value;
-  const registros = {
-    entrada:     document.getElementById('edit-entrada').value || null,
+
+  // Salvaguarda 1: força o usuário a selecionar uma linha antes de editar
+  if (!data) {
+    alert('Selecione um dia clicando na linha da tabela acima antes de salvar.');
+    return;
+  }
+
+  const original = dadosAno[data] || {};
+  const novo = {
+    entrada:     document.getElementById('edit-entrada').value     || null,
     break_start: document.getElementById('edit-break-start').value || null,
-    break_end:   document.getElementById('edit-break-end').value || null,
-    saida:       document.getElementById('edit-saida').value || null
+    break_end:   document.getElementById('edit-break-end').value   || null,
+    saida:       document.getElementById('edit-saida').value       || null
   };
-  await Api.editarRegistro(data, registros);
-  await carregar();
+
+  // Salvaguarda 2: detecta campos que estavam preenchidos e ficaram vazios
+  const seraoApagados = Object.keys(novo).filter(k => original[k] && !novo[k]);
+
+  if (seraoApagados.length > 0) {
+    const lista = seraoApagados.map(k => `• ${ROTULOS[k]} (${original[k]})`).join('\n');
+    const ok = confirm(
+      `Atenção: ao salvar, os seguintes registros do dia ${data.split('-').reverse().join('/')} serão APAGADOS:\n\n${lista}\n\nDeseja continuar?`
+    );
+    if (!ok) return;
+  }
+
+  try {
+    await Api.editarRegistro(data, novo);
+    await carregar();
+    alert('Registro salvo com sucesso.');
+  } catch (err) {
+    alert('Erro ao salvar: ' + err.message);
+  }
 });
 
 // Clique na linha da tabela popula o form de edição
@@ -52,12 +85,16 @@ g.corpo.addEventListener('click', (e) => {
   if (!tr) return;
   const data = tr.dataset.data;
   const reg = dadosAno[data] || {};
-  document.getElementById('edit-data').value      = data;
-  document.getElementById('edit-entrada').value   = reg.entrada || '';
+  document.getElementById('edit-data').value        = data;
+  document.getElementById('edit-entrada').value     = reg.entrada     || '';
   document.getElementById('edit-break-start').value = reg.break_start || '';
-  document.getElementById('edit-break-end').value = reg.break_end || '';
-  document.getElementById('edit-saida').value     = reg.saida || '';
-  document.getElementById('edit-data').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('edit-break-end').value   = reg.break_end   || '';
+  document.getElementById('edit-saida').value       = reg.saida       || '';
+
+  // Foca no primeiro campo editável e rola até o formulário
+  const formEl = document.getElementById('form-edicao');
+  formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => document.getElementById('edit-entrada').focus(), 300);
 });
 
 // === Carregamento principal ===
@@ -69,6 +106,10 @@ async function carregar() {
   renderTabela();
   renderResumoAnual();
   renderLancamentosMes();
+
+  // Limpa o formulário de edição ao recarregar a tabela
+  ['edit-data','edit-entrada','edit-break-start','edit-break-end','edit-saida']
+    .forEach(id => document.getElementById(id).value = '');
 }
 
 function renderTabela() {
@@ -156,6 +197,7 @@ function renderLancamentosMes() {
 
   g.listaLanc.querySelectorAll('button[data-remover]').forEach(b => {
     b.addEventListener('click', async () => {
+      if (!confirm(`Remover lançamento de ${b.dataset.remover.split('-').reverse().join('/')}?`)) return;
       await Api.removerLancamento(b.dataset.remover);
       await carregar();
     });

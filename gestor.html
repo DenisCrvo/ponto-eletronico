@@ -51,7 +51,7 @@
       </table>
     </div>
 
-    <!-- Resumo do mês (visível na impressão) -->
+    <!-- Resumo do mês (visível na impressão, exceto saldo anual) -->
     <section id="resumo-mes" class="resumo-mes mt-3">
       <div class="row">
         <div class="col-6"><strong>Horas previstas:</strong> <span id="prev-mes">--:--</span></div>
@@ -74,6 +74,9 @@
     <!-- Lançamentos do gestor (oculto na impressão) -->
     <section class="mt-4 no-print">
       <h5>Lançamentos</h5>
+      <p class="text-muted small mb-2">
+        Use esta área para registrar férias, atestados, feriados ou compensações de horas.
+      </p>
       <form id="form-lancamento" class="row g-2 align-items-end">
         <div class="col-md-3">
           <label class="form-label">Data inicial</label>
@@ -104,10 +107,15 @@
     <!-- Edição de ponto (oculto na impressão) -->
     <section class="mt-4 no-print">
       <h5>Corrigir registros do dia</h5>
+      <div class="alert alert-warning small py-2 mb-2">
+        ⚠️ Para corrigir registros, <strong>clique primeiro na linha do dia desejado</strong> na tabela acima.
+        Os campos serão preenchidos automaticamente com os horários existentes — ajuste apenas o que precisa
+        ser corrigido e clique em <strong>Salvar</strong>. Apagar um campo já preenchido removerá esse registro.
+      </div>
       <form id="form-edicao" class="row g-2 align-items-end">
         <div class="col-md-3">
           <label class="form-label">Data</label>
-          <input type="date" id="edit-data" class="form-control" required>
+          <input type="date" id="edit-data" class="form-control" readonly required>
         </div>
         <div class="col-md-2">
           <label class="form-label">Entrada</label>
